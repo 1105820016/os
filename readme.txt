@@ -1,1 +1,1 @@
-linux 0.11 
+learn linux 0.11  and write linux 0.11
