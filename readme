@@ -6,5 +6,11 @@
 
 使用的工具：
 1. nasm汇编编译器
-2. notepad文本编辑器
-3. vmware虚拟机
+	使用命令 nasm boot.asm -o boot.bin 将汇编编译成二进制文件
+
+2. FloppyWriter
+	运行 FloppyWriter.exe，选择 Writer File to Image 将二进制文件刻录成光盘文件（boot.img）
+	
+3. notepad文本编辑器
+4. vmware虚拟机
+
