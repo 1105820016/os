@@ -14,6 +14,6 @@
 	运行 FloppyWriter.exe，选择 Writer File to Image 将二进制文件刻录成光盘文件（boot.img）
 
 ###### 3. notepad 文本编辑器
-###### 4. vmware 虚拟机
-
-###### 5. Typora markdown格式文本编辑器
+###### 4. Typora markdown格式文本编辑器
+###### 5. vmware 虚拟机
+###### 6. Bochs x86硬件平台的开源模拟器
