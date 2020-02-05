@@ -42,14 +42,14 @@
          out 0x92,al                        ;打开A20
 
          cli                                ;保护模式下中断机制尚未建立，应 
-                                            ;禁止中断 
+                                            ;禁止中断
          mov eax,cr0
          or eax,1
-         mov cr0,eax                        ;设置PE位
+         mov cr0,eax                        ;设置PE位，打开保护模式
       
          ;以下进入保护模式... ...
-         jmp dword 0x0008:flush             ;16位的描述符选择子：32位偏移
-                                            ;清流水线并串行化处理器 
+         jmp dword 0x0008:flush             ;16位的描述符选择子：32位偏移  dword修饰偏移量，选择了索引号为1的描述符
+                                            ;清流水线并串行化处理器，jmp指令会自动清流水线
          [bits 32] 
 
     flush:
