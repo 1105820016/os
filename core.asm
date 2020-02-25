@@ -15,6 +15,16 @@ put_string:								;字符串显示程序
 										;显示0终止的字符串，并移动光标
 										;输入：DS:EBX=字符串地址
 	
+	
+read_hard_disk_0:						;从硬盘中读取一个逻辑扇区
+										;eax=逻辑扇区号
+										;ds:ebx=数据存放区域
+										;返回ebx=ebx+512
+										
+allocate_memory:                        ;分配内存
+                                        ;输入：ECX=希望分配的字节数
+                                        ;输出：ECX=起始线性地址
+										
 
 SECTION core_data vstart=0
 	message_1	db  '  If you seen this message,that means we '
@@ -38,8 +48,50 @@ SECTION core_code vstart=0
 load_relocate_program:					;加载并重定位用户程序
 										;输入：ESI=起始逻辑扇区
 										;返回:AX=用户程序的头部选择子
-
-
+	push ebx
+	push ecx
+	push edx
+	push esi
+	push edi
+	
+	push ds
+	push esi
+	
+	mov eax,core_data_seg_sel
+	mov ds,eax
+	
+	mov eax,esi
+	mov ebx,core_buf
+	call sys_routine_seg_sel:read_hard_disk_0
+	
+	mov eax,[core_buf]					;程序大小
+	mov ebx,eax
+	and ebx,0xfffffe00
+	add ebx,512							;使得ebx是512的倍数
+	test eax,0x000001ff					;判断eax是否是512的倍数
+	cmovnz eax,ebx
+	
+	mov ecx,eax
+	call sys_routine_seg_sel:allocate_memory
+	mov ebx,ecx
+	push ebx							;保存申请到的内存的起始地址
+	xor edx,edx
+	mov ecx,512
+	div ecx
+	mov ecx,eax							;ecx用于循环读取用户程序
+	
+	mov eax,mem_0_4_gb_seg_sel			;准备加载用户程序徐
+	mov ds,eax
+	
+	mov eax,esi							;起始扇区号，目标内存地址在ds:ebx中
+.b1:
+	call sys_routine_seg_sel:read_hard_disk_0
+	inc eax
+	loop .b1
+	
+	pop edi								;用户程序在内存中的地址
+	
+	
 start:									;内核程序的入口
 	mov ecx,core_data_seg_sel
 	mov ds,ecx
