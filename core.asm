@@ -1,13 +1,24 @@
 	;内核代码
 	
-	core_code_seg_sel     equ  0x38    ;内核代码段选择子
-	core_data_seg_sel     equ  0x30    ;内核数据段选择子 
-	sys_routine_seg_sel   equ  0x28    ;系统公共例程代码段的选择子 
-	video_ram_seg_sel     equ  0x20    ;视频显示缓冲区的段选择子
-	core_stack_seg_sel    equ  0x18    ;内核堆栈段选择子
-	mem_0_4_gb_seg_sel    equ  0x08    ;整个0-4GB内存的段的选择子
-
+	;各个段的选择子，程序设计初已经固定
+	core_code_seg_sel     equ  0x38		;内核代码段选择子
+	core_data_seg_sel     equ  0x30		;内核数据段选择子 
+	sys_routine_seg_sel   equ  0x28		;系统公共例程代码段的选择子 
+	video_ram_seg_sel     equ  0x20		;视频显示缓冲区的段选择子
+	core_stack_seg_sel    equ  0x18		;内核堆栈段选择子
+	mem_0_4_gb_seg_sel    equ  0x08		;整个0-4GB内存的段的选择子
 	
+	;内核头
+	core_length			dd core_end		;程序总长度;0x00
+	
+	sys_routine_seg		dd section.sys_routine.start	;0x04，公共程序地址
+	
+	core_data_seg		dd section.core_data.start		;0x08,内核数据段位置
+	
+	core_code_seg		dd section.core_code.start		;0x0c,内核代码段位置
+	
+	core_entry			dd start						;内核代码段入口
+						dw core_code_seg_sel
 	
 	[bits 32]
 SECTION sys_routine vstart=0
@@ -25,6 +36,31 @@ allocate_memory:                        ;分配内存
                                         ;输入：ECX=希望分配的字节数
                                         ;输出：ECX=起始线性地址
 										
+make_gdt_descriptor:					;构造描述符
+										;输入eax=基地址
+										;	ebx=段界限
+										;	ecx=属性，都在原位置，没用到的位置放0
+										;返回 edx:eax 描述符
+	mov edx,eax
+	shl eax,16
+	or ax,bx
+	
+	and edx,0xffff0000
+	rol edx,8
+	bswap edx
+	
+	xor bx,bx
+	or edx,ebx
+	
+	or edx,ecx
+	
+	retf
+	
+set_up_gdt_descriptor:                  ;在GDT内安装一个新的描述符
+                                        ;输入：EDX:EAX=描述符 
+                                        ;输出：CX=描述符的选择子
+
+
 
 SECTION core_data vstart=0
 	message_1	db  '  If you seen this message,that means we '
@@ -84,13 +120,65 @@ load_relocate_program:					;加载并重定位用户程序
 	mov ds,eax
 	
 	mov eax,esi							;起始扇区号，目标内存地址在ds:ebx中
-.b1:
+load:
 	call sys_routine_seg_sel:read_hard_disk_0
 	inc eax
-	loop .b1
+	loop load
 	
+	;创建用户头段描述符
 	pop edi								;用户程序在内存中的地址
+	mov eax,edi
+	mov ebx,[edi+0x04]
+	dec ebx
+	mov ecx,0x00409200
+	call sys_routine_seg_sel:make_gdt_descriptor
+	call sys_routine_seg_sel:set_up_gdt_descriptor
+	mov [edi+0x04],cx					;将选着子安装到用户程序头
 	
+	;创建用户代码段描述符
+	mov eax,edi
+	add eax,[edi+0x14]
+	mov ebx,[edi+0x18]
+	dec ebx
+	mov ecx,0x00409800
+	call sys_routine_seg_sel:make_gdt_descriptor
+	call sys_routine_seg_sel:set_up_gdt_descriptor
+	mov [edi+0x14],cx
+	
+	;创建用户数据段描述符
+	mov eax,edi
+	add eax,[edi+0x1c]
+	mov ebx,[edo+0x20]
+	dec ebx
+	mov ecx,0x00409200
+	call sys_routine_seg_sel:make_gdt_descriptor
+	call sys_routine_seg_sel:set_up_gdt_descriptor
+	mov [edi+0x1c],cx
+	
+	;创建用户程序堆栈段描述符
+	mov ecx,[edi+0x0c]
+	mov ebx,0x000fffff					;解释看P.237
+	sub ebx,ecx
+	mov eax,4096
+	mul dword [edi+0x0c]
+	mov ecx,eax
+	call sys_routine_seg_sel:allocate_memory
+	add eax,ecx
+	mov ecx,0x00c09600
+	call sys_routine_seg_sel:make_gdt_descriptor
+	call sys_routine_seg_sel:set_up_gdt_descriptor
+	mov [edi+0x08],cx
+	
+	
+	;重定位SALT（链接？）
+	mov eax,[edi+0x04]
+	mov es,eax							;用户程序头选择子
+	mov eax,core_data_seg_sel
+	mov ds,eax
+	
+	cld	
+	
+	mov eax,[es]
 	
 start:									;内核程序的入口
 	mov ecx,core_data_seg_sel

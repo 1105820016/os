@@ -201,7 +201,7 @@ make_gdt_descriptor:					;构造描述符
 	ret
 
 
-	gdt dw 0x0000
-		dd 0x00007e00
-	times 510-($-$$) db 0
-					 db 0x55,0xaa
+	gdt 				dw 0x0000
+						dd 0x00007e00
+	times 510-($-$$) 	db 0
+						db 0x55,0xaa
