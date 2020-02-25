@@ -59,16 +59,91 @@ make_gdt_descriptor:					;构造描述符
 set_up_gdt_descriptor:                  ;在GDT内安装一个新的描述符
                                         ;输入：EDX:EAX=描述符 
                                         ;输出：CX=描述符的选择子
-
-
+	push eax
+	push ebx
+	push edx
+	
+	push ds
+	push es
+	
+	mov ebx,core_data_seg_sel
+	mov ds,ebx
+	
+	sgdt [gdt]							;便于处理GDT
+	
+	mov ebx,mem_0_4_gb_seg_sel
+	mov es,ebx
+	
+	movzx ebx,word [gdt]				;GDT界限,movzx将16位值传到32位里，多位补零
+	inc bx
+	add ebx,[gdt+2]						;下一个描述符的地址=gdt基地址+原本总共描述符字节
+	
+	mov [es:ebx],eax					;安装新描述符
+	mov [es:ebx+4],edx
+	
+	add word [gdt],8
+	lgdt [gdt]
+	
+	mov ax,[gdt]
+	xor dx,dx
+	mov bx,8
+	div bx
+	mov cx,ax
+	shl cx,3
+	
+	pop es
+	pop ds
+	
+	pop edx
+	pop ebx
+	pop eax
+	
+	
+put_hex_dword:                          ;在当前光标处以十六进制形式显示
+                                        ;一个双字并推进光标 
+                                        ;输入：EDX=要转换并显示的数字
+                                        ;输出：无
+											
 
 SECTION core_data vstart=0
+	gdt			dw 0
+				dd 0
+				
+	ram_alloc	dd 0x00100000			;下次分配内存时的起始地址
+
+salt:
+	salt_1		db '@PrintString'
+				times 256-($-salt_1) db 0
+				dd put_string			;put_string这个函数的位置
+				dw sys_routine_seg_sel
+				
+	salt_2		db '@ReadDiskData'
+				times 256-($-salt_2) db 0
+				dd read_hard_disk_0
+				dw sys_routine_seg_sel
+				
+	salt_3		db '@PrintDwordAsHexString'
+				times 256-($-salt_3) db 0
+				dd put_hex_dword
+				dw sys_routine_seg_sel
+				
+	salt_4		db '@TerminateProgram'	;终止程序返回内核
+				times 256-($-salt_4) db 0
+				dd return_point
+				dw core_code_seg_sel
+	
+	salt_item_len	equ $-salt_4		;262
+	salt_times	equ ($-salt)/salt_item_len
+	
 	message_1	db  '  If you seen this message,that means we '
 				db  'are now in protect mode,and the system '
                 db  'core is loaded,and the video display '
                 db  'routine works perfectly.',0x0d,0x0a,0
 				
 	message_5	db	'	Loading user program...',0
+	
+	message_6   db  0x0d,0x0a,0x0d,0x0a,0x0d,0x0a
+                db  '  User program terminated,control returned.',0
 	
 	do_status	db	'Done.'0x0d,0x0a,0
 	
@@ -91,7 +166,7 @@ load_relocate_program:					;加载并重定位用户程序
 	push edi
 	
 	push ds
-	push esi
+	push es
 	
 	mov eax,core_data_seg_sel
 	mov ds,eax
@@ -178,7 +253,50 @@ load:
 	
 	cld	
 	
-	mov eax,[es]
+	mov ecx,[es+0x24]					;有多少个函数循环多少遍
+	mov edi,0x28						;函数所处的位置
+loop1:									;ds:esi指向内核函数salt表,es:edi指向用户salt表
+	push ecx
+	;push edi
+	
+	mov ecx,salt_times
+	mov esi,salt
+loop2:
+	push ecx
+	push esi
+	push edi
+	
+	mov ecx,64							;cmpsd每次比较四字节，需要比较256/4=54次
+	repe cmpsd							;比较ds:esi和es:edi,比较完一次esi/edi+=4，repe若是为0则重复
+	jnz continue						;不为0说明不相等直接进行下一次循环
+	mov eax,[esi]						;将内核的函数地址传给用户程序的salt表
+	mov [es:edi-256],eax
+	mov ax,[esi+4]						;传选择子
+	mov [es:edi-252],ax
+continue:
+	pop edi
+	pop esi
+	add esi,salt_item_len
+	pop ecx
+	loop loop2							;内循环
+	
+	;pop edi
+	add edi,256							;指向下一个函数
+	pop ecx
+	loop loop1							;外循环
+	
+	mov ax,[es:0x04]
+	
+	pop es
+	pop ds
+	
+	pop edi
+	pop esi
+	pop edx
+	pop ecx
+	pop ebx
+	
+	ret
 	
 start:									;内核程序的入口
 	mov ecx,core_data_seg_sel
@@ -226,6 +344,19 @@ start:									;内核程序的入口
 	mov ds,ax								;ax存放的是load_relocate_program后的选择子
 	
 	jmp far [0x10]
+
+return_point:
+	mov eax,core_data_seg_sel
+	mov ds,eax
+	
+	mov eax,core_stack_seg_sel
+	mov ss,eax
+	mov esp,[esp_pointer]
+	
+	mov ebx,message_6
+	call sys_routine_seg_sel:put_string
+	
+	hlt
 
 SECTION core_trail
 core_end:

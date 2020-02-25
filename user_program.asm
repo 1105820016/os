@@ -16,7 +16,7 @@ SECTION header vstart=0
 	
 	;slat表，将用到的函数列出来
 	slat_tiems		dd (head_end-salt)/256	;0x24有几个函数
-salt:
+salt:										;0x28
 	PrintString		db '@PrintString'
 					times 256-($-PrintString) db 0
 	
