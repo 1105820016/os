@@ -29,11 +29,42 @@ salt:										;0x28
 head_end:
 
 SECTION data vstart=0
-
+		
+		buffer times 1024 db 0
+		
+		message_1	db 0x0d,0x0a,0x0d,0x0a
+					db '*******User program is runing*********'
+					db 0x0d,0x0a,0
+					
+		message_2	db '   Disk data:',0x0d,0x0a,0
 data_end:
 
 SECTION code vstart=0
 start:
+		mov eax,ds
+		mov fs,eax
+		
+		mov eax,[stack_seg]
+		mov ss,eax
+		mov esp,0
+		
+		mov eax,[data_seg]
+		mov ds,eax
+		
+		mov ebx,message_1
+		call far [fs:PrintString]
+		
+		mov eax,100							;读取扇区100号处得数据，在制作硬盘得时候写入
+		mov ebx,buffer
+		call far [fs:ReadDiskData]
+		
+		mov ebx,message_2
+		call far [fs:PrintString]
+		
+		mov ebx,buffer
+		call far [fs:PrintString]
+		
+		jmp far [fs:TerminateProgram]
 
 code_end:
 
