@@ -25,17 +25,196 @@ SECTION sys_routine vstart=0
 put_string:								;字符串显示程序
 										;显示0终止的字符串，并移动光标
 										;输入：DS:EBX=字符串地址
+		push ecx
 	
+	.getc:
+		mov cl,[ebx]
+		or cl,cl
+		jz .exit
+		call put_char
+		inc ebx
+		jmp .getc
+	.exit:
+		pop ecx
+		retf
+		
+put_char:								;在当前光标处显示一个字符，并推进光标
+										;输入CL=字符的ASCII码
+		pushad
+		
+		;获取当前光标位置,光标通常指向下一个要显示字符的位置，光标的位置保存在显卡中的两个光标寄存器中
+		;每个寄存器8位，合起来就是16位，因为标准VGA文本模式是25行，80列，如果寄存器的值是80就表示1行0列
+		;显卡不自动更改光标寄存器的值，显卡内部的寄存器操作只能通过索引寄存器间接访问
+		;索引寄存器的端口号是0x3d4，可以向它写入一个值，用来指定内部的某个寄存器
+		;指定了某个寄存器后，可以通过数据端口0x3d5进行读写。前面提到的光标的两个8位寄存器，其索引值分别是0x0e和0x0f，分别用于提供光标位置的高8位和低8位
+		mov dx,0x3d4
+		mov al,0x0e
+		out dx,al
+		inc dx							;0x3d5
+		in al,dx						;高8位
+		mov ah,al
+		
+		dec dx							;0x3d4
+		mov al,0x0f
+		out dx,al
+		inc dx							;0x3d5
+		in al,dx
+		mov bx,ax						;bx=光标的位置
+		
+		cmp cl,0x0d						;回车符？
+		jnz .put_0a
+		mov ax,bx
+		mov bl,80
+		div bl
+		mul bl
+		mov bx,ax
+		jmp .set_cursor
+		
+	.put_0a:
+		cmp cl,0x0a						;换行符？
+		jnz .put_other
+		add bx,80
+		jmp .roll_screen
+		
+	.put_other:
+		push es
+		mov eax,video_ram_seg_sel
+		mov es,eax
+		shl bx,1
+		mov [es:bx],cl
+		pop es
+		
+		shr bx,1
+		inc bx
+		
+	.roll_screen:
+		cmp bx,2000
+		jl .set_cursor
+		
+		push ds
+		push es
+		mov eax,video_ram_seg_sel
+		mov ds,eax
+		mov es,eax
+		cld
+		mov esi,0xa0
+		mov edi,0x00
+		mov ecx,1920
+		rep movsd
+		mov bx,3840
+		mov ecx,80
+		
+	.cls:
+		mov word[es:bx],0x0720
+		add bx,2
+		loop .cls
+		
+		pop es
+		pop ds
+		
+		mov bx,1920
+		
+	.set_cursor:
+		mov dx,0x3d4
+		mov al,0x0e
+		out dx,al
+		inc dx
+		mov al,bh
+		out dx,al
+		dec dx
+		mov al,0x0f
+		out dx,al
+		inc dx
+		mov al,bl
+		out dx,al
+		
+		popad
+		ret
 	
 read_hard_disk_0:						;从硬盘中读取一个逻辑扇区
 										;eax=逻辑扇区号
 										;ds:ebx=数据存放区域
 										;返回ebx=ebx+512
+		push eax
+		push ecx
+		push edx
+
+		push eax
+	
+		mov dx,0x1f2
+		mov al,1
+		out dx,al
+	
+		inc dx
+		pop eax
+		out dx,al
+	
+		inc dx
+		mov cl,8
+		shr eax,al
+		out dx,al
+	
+		inc dx
+		shr eax,cl
+		out dx,al
+	
+		inc dx
+		shr eax,cl
+		or al,0xe0
+		out dx,al
+	
+		inc dx
+		mov al,0x20
+		out dx,al
+
+	.waits:
+		in al,dx
+		and al,0x88
+		cmp al,0x08
+		jnz .waits
+	
+		mov ecx,256
+		mov dx,0x1f0
+	.readw
+		in ax,dx
+		mov [ebx],ax
+		add ebx,2
+		loop .readw
+	
+		pop edx
+		pop ecx
+		pop eax
+	
+		ret
 										
 allocate_memory:                        ;分配内存
                                         ;输入：ECX=希望分配的字节数
                                         ;输出：ECX=起始线性地址
-										
+		push ds
+		push eax
+		push ebx
+		
+		mov eax,core_data_seg_sel
+		mov ds,eax
+		
+		mov eax,[ram_alloc]
+		add eax,ecx
+		
+		mov ecx,[ram_alloc]
+		
+		mov ebx,eax
+		and ebx,0xfffffffc
+		add ebx,4
+		test eax,0x00000003
+		cmovnz eax,ebx
+		mov [ram_alloc],eax
+		
+		pop ebx
+		pop eax
+		pop ds
+		
+		retf
+		
 make_gdt_descriptor:					;构造描述符
 										;输入eax=基地址
 										;	ebx=段界限
@@ -102,9 +281,33 @@ set_up_gdt_descriptor:                  ;在GDT内安装一个新的描述符
 put_hex_dword:                          ;在当前光标处以十六进制形式显示
                                         ;一个双字并推进光标 
                                         ;输入：EDX=要转换并显示的数字
-                                        ;输出：无
-											
-
+                                        ;输出：无		
+         pushad
+         push ds
+      
+         mov ax,core_data_seg_sel           ;切换到核心数据段 
+         mov ds,ax
+      
+         mov ebx,bin_hex                    ;指向核心数据段内的转换表
+         mov ecx,8
+  .xlt:    
+         rol edx,4
+         mov eax,edx
+         and eax,0x0000000f
+         xlat
+      
+         push ecx
+         mov cl,al                           
+         call put_char
+         pop ecx
+       
+         loop .xlt
+      
+         pop ds
+         popad
+         retf
+		 
+		 
 SECTION core_data vstart=0
 	gdt			dw 0
 				dd 0
