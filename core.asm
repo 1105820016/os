@@ -151,7 +151,7 @@ read_hard_disk_0:						;从硬盘中读取一个逻辑扇区
 	
 		inc dx
 		mov cl,8
-		shr eax,al
+		shr eax,cl
 		out dx,al
 	
 		inc dx
@@ -175,7 +175,7 @@ read_hard_disk_0:						;从硬盘中读取一个逻辑扇区
 	
 		mov ecx,256
 		mov dx,0x1f0
-	.readw
+	.readw:
 		in ax,dx
 		mov [ebx],ax
 		add ebx,2
@@ -348,7 +348,7 @@ salt:
 	message_6   db  0x0d,0x0a,0x0d,0x0a,0x0d,0x0a
                 db  '  User program terminated,control returned.',0
 	
-	do_status	db	'Done.'0x0d,0x0a,0
+	do_status	db	'Done.',0x0d,0x0a,0
 	
 	core_buf 	times 2048 db 0
 	
@@ -357,6 +357,7 @@ salt:
 	cpu_brand	db	0x0d,0x0a,'  ',0
 	cpu_brand0	times 52 db 0
 	cpu_brand1	db 0x0d,0x0a,0x0d,0x0a,0
+	bin_hex		db '0123456789ABCDEF'
 
 SECTION core_code vstart=0
 load_relocate_program:					;加载并重定位用户程序
@@ -426,7 +427,7 @@ load:
 	;创建用户数据段描述符
 	mov eax,edi
 	add eax,[edi+0x1c]
-	mov ebx,[edo+0x20]
+	mov ebx,[edi+0x20]
 	dec ebx
 	mov ecx,0x00409200
 	call sys_routine_seg_sel:make_gdt_descriptor
@@ -456,7 +457,7 @@ load:
 	
 	cld	
 	
-	mov ecx,[es+0x24]					;有多少个函数循环多少遍
+	mov ecx,[es:0x24]					;有多少个函数循环多少遍
 	mov edi,0x28						;函数所处的位置
 loop1:									;ds:esi指向内核函数salt表,es:edi指向用户salt表
 	push ecx

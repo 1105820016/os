@@ -144,7 +144,7 @@ read_hard_disk_0:						;从硬盘中读取一个逻辑扇区
 	
 	inc dx
 	mov cl,8
-	shr eax,al
+	shr eax,cl
 	out dx,al
 	
 	inc dx
@@ -168,7 +168,7 @@ read_hard_disk_0:						;从硬盘中读取一个逻辑扇区
 	
 	mov ecx,256
 	mov dx,0x1f0
-.readw
+.readw:
 	in ax,dx
 	mov [ebx],ax
 	add ebx,2
