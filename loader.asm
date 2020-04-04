@@ -1,3 +1,5 @@
+		;0x8000临时缓冲区
+		
 		org	10000h
 		jmp	Start
 		
@@ -262,8 +264,145 @@
 		mov	cx,	23
 		int	10h
 		
-		mov	ax,
+		;get SGVA information
+		mov	ax,	ds
+		mov	es,	ax
+		mov	bp,	GetSGVAInformationMessage
+		mov	ax,	1301h
+		mov	bx,	000fh
+		mov	dx,	0800h
+		mov	cx,	26
+		int	10h
+		
+		mov	ax,	0x00
+		mov	es,	ax
+		mov	di,	0x8000
+		mov	ax,	4f00h
+		int	10h
+		
+		cmp	ax,	004fh
+		jz	.KO
+		
+		;FAIL
+		mov	ax,	ds
+		mov	es,	ax
+		mov	bp,	GetSVGAVBEInfoErrorMessage
+		mov	ax,	1301h
+		mov	bx,	000fh
+		mov	dx,	0900h
+		mov	cx,	26
+		int	10h
+		
+		jmp	$
+		
+	.KO
+		mov	ax,	ds
+		mov	es,	ax
+		mov	bp,	GetSVGAVBEInfoOKMessage
+		mov	ax,	1301h
+		mov	bx,	000fh
+		mov	dx,	0a00h
+		mov	cx,	23
+		int	10h
+		
+		;get SVGA mode information
+		mov	ax,	ds
+		mov	es,	ax
+		mov	bp,	GetSVGAModeInformationMessage
+		mov	ax,	1301h
+		mov	bx,	000fh
+		mov	dx,	0c00h
+		mov	cx,	31
+		int	10h
+		
+		mov	ax,	0x00
+		mov	es,	ax
+		mov	si,	0x800e
+		
+		mov	esi,	dword	[es:si]
+		mov	edi,	0x8200
+		
+	SVGAModeInfoGet:
+		mov	cx,	word	[es:esi]
+		
+		mov	ax,	00h
+		mov	al,	ch
+		call	DispAL
+		
+		mov	ax,	0
+		mov	al,	cl
+		call	DispAL
+		
+		cmp	cx,	0FFFFh
+		jz	SVGAModeInfoFinish
+		
+		mov	ax,	4f01h
+		int	10h
+		
+		cmp	ax,	004fh
+		jnz	SVGAModeInfoFail
+		
+		add	esi,	2
+		add	edi,	0x1000
+		
+		jmp	SVGAModeInfoGet
+		
+	SVGAModeInfoFail:
+		mov	ax,	ds
+		mov	es,	ax
+		mov	bp,	GetSVGAModeInfoErrorMessage
+		mov	ax,	1301h
+		mov	bx,	000fh
+		mov	dx,	0d00h
+		mov	cx,	31
+		int	10h
+		
+	SetSVGAModeFail:
+		jmp	$
+		
+	SVGAModeInfoFinish:
+		mov	ax,	ds
+		mov	es,	ax
+		mov	bp,	GetSVGAModeInfoOKMessage
+		mov	ax,	1301h
+		mov	bx,	000fh
+		mov	dx,	0e00h
+		mov	cx,	28
+		int	10h
+		
+	;set SVGA mode
+		mov	ax,	4f02h
+		mov	bx,	4180h		;设置SVGA芯片的显示模式，180-》1440*900的分辨率
+		int	10h
+		
+		cmp	ax,	004fh
+		jnz	SetSVGAModeFail
+		
+		cli
+		
+		db	0x66
+		lgdt	[gdt]
+		
+		mov	eax,	cr0
+		or	eax,	1
+		mov	cr0,	eax
+		
+		jmp	dword	CodeSelector:GoToTMPProtect
 	
+	
+[SECTION .s32]
+[BITS 32]
+	GoToTMPProtect:
+		mov	ax,	0x10
+		mov	ds,	ax
+		mov	es,	ax
+		mov	fs,	ax
+		mov	ss,	ax
+		mov	esp,	7e00h
+		
+		call	SupportLongMode
+		test	eax,	eax
+		jz	NoSupport
 		
 		
 GetFATEntry:
@@ -307,5 +446,10 @@ ReadOneSector:					;AX=待读取磁盘起始扇区
 	GetMemStructMessage:	db	"Start get memery struct"	;23
 	GetMemStructErrorMessage:	db	"Get memery struct error"	;23
 	GetMemStructOKMessage	db	"Get memery struct OK"	;20
-
-
+	
+	GetSGVAInformationMessage	db	"Start Get SVGA	Information"	;26
+	GetSVGAVBEInfoErrorMessage	db	"Get SVGA Information Error"	;26
+	GetSVGAVBEInfoOKMessage		db	"Get SVGA Information OK"	;23
+	GetSVGAModeInformationMessage	db	"Start Get SVGA Mode Information"	;31
+	GetSVGAModeInfoErrorMessage	db	"Get SVGA Mode Information Error"
+	GetSVGAModeInfoOKMessage	db	"Get SVGA Mode Information OK"	;28
