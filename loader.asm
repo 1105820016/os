@@ -23,6 +23,18 @@
 		
 	CodeSelector	equ	CodeDescriptor - GdtTable	;8
 	DateSelector	equ	DateDescriptor - GdtTable	;16
+	
+[SECTION GDT64]
+	GdtTable64:		dq	0x00
+	CodeDescriptor64:	dq	0x0020980000000000
+	DateDescriptor64:	dq	0x0000920000000000
+	
+	gdt64	dw	$ - GdtTable64 - 1
+		dd	GdtTable64
+		
+	CodeSelector64	equ	16
+	DateSelector64	equ	32
+	
 
 [SECTION START]
 [BITS 16]
@@ -387,7 +399,7 @@
 		or	eax,	1
 		mov	cr0,	eax
 		
-		jmp	dword	CodeSelector:GoToTMPProtect
+		jmp	dword	CodeSelector:GoToTMPProtect	;进入保护模式
 	
 	
 [SECTION .s32]
@@ -404,15 +416,123 @@
 		test	eax,	eax
 		jz	NoSupport
 		
+		;init temporary page table 0x90000
+		mov	dword	[0x90000],	0x91007
+		mov	dword	[0x90800],	0x91007
 		
-GetFATEntry:
+		mov	dword	[0x91000],	0x92007
+		mov	dword	[0x92000],	0x000083
+		mov	dword	[0x92008],	0x200083
+		mov	dword	[0x92010],	0x400083
+		mov	dword	[0x92018],	0x600083
+		mov	dword	[0x92020],	0x800083
+		mov	dword	[0x92028],	0xa00083
+		
+		db	0x66
+		lgdt	[gdt64]
+		
+		mov	ax,	0x10
+		mov	ds,	ax
+		mov	es,	ax
+		mov	fs,	ax
+		mov	gs,	ax
+		mov	ss,	ax
+		mov	esp,	7e00h
+		
+		;open	PAE,开启物理地址扩展功能
+		mov	eax,	cr4
+		bts	eax,	5		;从eax中取第5位放入CF，该位置1
+		mov	cr4,	eax
+		
+		;load	cr3，将页目录加载到cr3
+		mov	eax,	0x90000
+		mov	cr3	eax
+		
+		;置位IA32_EFER的LME标志位，开启IA-32e模式
+		mov	ecx,	0C0000080h
+		rdmsr				;读取msr寄存器组，结果在EDX:EAX
+		bts	eax,	8
+		wrmsr
+		
+		mov	eax,	cr0
+		bts	eax,	0
+		bts	eax,	31		;置位CR0.PG，开启分页机制
+		mov	cr0,	eax		;进入IA-32e模式（兼容模式）
+		
+		jmp	CodeSelector64:OffsetOfKernelFile
+	
+	SupportLongMode:
+		mov	eax,	0x80000000
+		cpuid
+		cmp	eax,	0x80000001	;检测CPUID是否支持大于0x80000000的功能号
+		setnb	al			;不低于置位
+		jb	SupportLongModeDone
+		mov	eax,	0x80000001
+		cpuid
+		bt	eax,	29		;检测是否支持IA-32e模式
+		setc	al
+	SupportLongModeDone:
+		mov	eax,	al
+		ret
+	
+	NoSupport:
+		jmp	$
+	
+		
 
+[SECTION .s16]
+[BITS 16]	
+	
+GetFATEntry:					;AX=FAT表项号
+						;输出：AX=FAT表项号（根据当前FAT表项号索引出下一个表项）
+		push	es
+		push	bx
+		push	ax
+		
+		mov	ax,	0
+		mov	es,	ax
+		
+		pop	ax
+		mov	byte	[Odd],	0
+		mov	bx,	3
+		mul	bx
+		mov	bx,	2
+		div	bx
+		cmp	dx,	0
+		jz	LabelEven
+		mov	byte	[Odd],	1
+		
+	LabelEven:
+		xor	dx,	dx
+		mov	bx,	[BPB_BytesPerSec]
+		div	bx
+		push	dx
+		mov	bx,	8000h
+		add	ax,	SectorNumOfFAT1Start
+		mov	cl,	2
+		call	ReadOneSector
+		
+		pop	dx
+		add	bx,	dx
+		mov	ax,	[es:bx]
+		cmp	byte	[Odd],	1
+		jnz	LabelEven2
+		shr	ax,	4
+
+	LabelEven2:
+		and	ax,	0FFFh
+		pop	bx
+		pop	es
+		ret
+		
+		
 		
 ReadOneSector:					;AX=待读取磁盘起始扇区
 						;CL=读入扇区数
 						;ES:BX=目标缓冲区
 	
 		push	bp
+		
 		mov	bp,	sp
 		sub	esp,	2
 		mov	byte	[bp - 2],	cl
@@ -433,12 +553,54 @@ ReadOneSector:					;AX=待读取磁盘起始扇区
 		int	13h
 		jc	Label_Go_On_Reading
 		add	esp,	2
+		
 		pop	bp
 		ret
+		
+		
+DispAL:
+		push	ecx
+		push	edx
+		push	edi
+		
+		mov	edi,	[DisplayPosition]
+		mov	ah,	0Fh
+		mov	dl,	al
+		shr	al,	4
+		mov	ecx,	2
+	.begin:
+
+		and	al,	0Fh
+		cmp	al,	9
+		ja	.1
+		add	al,	'0'
+		jmp	.2
+	.1:
+
+		sub	al,	0Ah
+		add	al,	'A'
+	.2:
+
+		mov	[gs:edi],	ax
+		add	edi,	2
+		
+		mov	al,	dl
+		loop	.begin
+
+		mov	[DisplayPosition],	edi
+
+		pop	edi
+		pop	edx
+		pop	ecx
+		
+		ret
+		
 
 	SectorNo		dw	0
 	RootDirRectorNum	dw	NumOfRootDirSector
 	OffsetOfKernelFile	dw	0
+	DisplayPosition		dd	0
+	Odd			db	0
 	
 	KernelFileName:		db	"KERNEL  BIN",0		;11个字节
 	StartLoaderMessage:	db	"Start Loader"
