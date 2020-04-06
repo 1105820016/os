@@ -15,8 +15,8 @@
 	
 [SECTION GDT]
 	GdtTable:	dd	0,0
-	CodeDescriptor：	dd	0x0000FFFF,0x00CF9A00	;段基址0x00,段长度0xffff,粒度4KB，可访问0-4GB内容,DPL=0
-	DateDescriptor：	dd	0x0000FFFF,0x00CF9200	;段基址0x00,段长0xffff,粒度4KB,DPL=0
+	CodeDescriptor:	dd	0x0000FFFF,0x00CF9A00	;段基址0x00,段长度0xffff,粒度4KB，可访问0-4GB内容,DPL=0
+	DateDescriptor:	dd	0x0000FFFF,0x00CF9200	;段基址0x00,段长0xffff,粒度4KB,DPL=0
 	
 	gdt	dw	$ - GdtTable - 1
 		dd	GdtTable
@@ -161,8 +161,8 @@
 		mov	al,	'.'
 		mov	bl,	0Fh
 		int 	10h
-		pop	ax
 		pop	bx
+		pop	ax
 		
 		mov	cl,	1
 		call	ReadOneSector
@@ -226,7 +226,8 @@
 		
 	KillMotor:	;关闭软盘驱动
 		mov	dx,	03F2h
-		out	dx,	0
+		mov	al,	0
+		out	dx,	al
 		
 		
 		mov	ax,	ds
@@ -293,7 +294,7 @@
 		int	10h
 		
 		cmp	ax,	004fh
-		jz	.KO
+		jz	KO
 		
 		;FAIL
 		mov	ax,	ds
@@ -307,7 +308,7 @@
 		
 		jmp	$
 		
-	.KO
+	KO:
 		mov	ax,	ds
 		mov	es,	ax
 		mov	bp,	GetSVGAVBEInfoOKMessage
@@ -446,7 +447,7 @@
 		
 		;load	cr3，将页目录加载到cr3
 		mov	eax,	0x90000
-		mov	cr3	eax
+		mov	cr3,	eax
 		
 		;置位IA32_EFER的LME标志位，开启IA-32e模式
 		mov	ecx,	0C0000080h
@@ -472,7 +473,7 @@
 		bt	eax,	29		;检测是否支持IA-32e模式
 		setc	al
 	SupportLongModeDone:
-		mov	eax,	al
+		movzx	eax,	al		;无符号扩展传送，0扩展然后传送
 		ret
 	
 	NoSupport:
@@ -487,12 +488,12 @@ GetFATEntry:					;AX=FAT表项号
 						;输出：AX=FAT表项号（根据当前FAT表项号索引出下一个表项）
 		push	es
 		push	bx
-		push	ax
 		
+		push	ax
 		mov	ax,	0
 		mov	es,	ax
-		
 		pop	ax
+		
 		mov	byte	[Odd],	0
 		mov	bx,	3
 		mul	bx
@@ -598,7 +599,7 @@ DispAL:
 
 	SectorNo		dw	0
 	RootDirRectorNum	dw	NumOfRootDirSector
-	OffsetOfKernelFile	dw	0
+	OffsetOfKernelFile	dd	0x100000
 	DisplayPosition		dd	0
 	Odd			db	0
 	
