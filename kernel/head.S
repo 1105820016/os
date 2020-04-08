@@ -8,7 +8,43 @@ _start:			;程序的入口
 	mov	%ax,	%es
 	mov	%ax,	%fs
 	mov	%ax,	%ss
-	mov	%0x7e00,	%esp
+	mov	$0x7e00,	%esp
+	
+	lgdt	GDT_Pointer(%rip)
+	
+	lidt	IDT_Pointer(%rip)
+	
+	mov	%ax,	%ds
+	mov	%ax,	%es
+	mov	%ax,	%fs
+	mov	%ax,	%ss
+	mov	%ax,	%gs
+	mov	$0x7e00,	%rsp
+	
+	movq	$0x101000,	%rax
+	movq	%rax,	%cr3
+	movq	switch_seg(%rip),	%rax
+	pushq	%rax
+	lretq
+	
+switch_seg:
+	.quad	entry64
+	
+entry64:
+	movq	$0x10,	%rax
+	movq	%rax,	%ds
+	movq	%rax,	%es
+	movq	%rax,	%gs
+	movq	%rax,	%ss
+	movq	$0xffff800000007E00,	%rsp
+	
+	movq	go_to_kernel(%rip),	%rax
+	pushq	$0x08
+	pushq	%rax
+	lretq
+
+go_to_kernel:
+	.quad	Start_Kernel
 	
 	
 	
@@ -67,7 +103,7 @@ GDT:
 	.quad	0x0000f20000000000	;数据段,DPL=3
 	.quad	0x00cf9a000000ffff	;代码段，32位,DPL=0,段基址 0x0，段长度 0xfffff,粒度4kb
 	.quad	0x00cf92000000ffff	;数据段，32位,DPL=0,段基址 0x0，段长度 0xfffff,粒度4kb
-	.fill	10,8,0
+	.fill	10,8,0			;2个TSS，128bit,16字节*8
 	
 	
 GDT_Pointer:
