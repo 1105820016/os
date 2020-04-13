@@ -1,8 +1,8 @@
-.section .text		;伪指令，.text表代码段，只读和可执行
+.section .text		//伪指令，.text表代码段，只读和可执行
 
-.globl _start		;标记为全局符号，链接器会用到
+.globl _start		//标记为全局符号，链接器会用到
 
-_start:			;程序的入口
+_start:			//程序的入口
 	mov	$0x10,	%ax
 	mov	%ax,	%ds
 	mov	%ax,	%es
@@ -81,45 +81,45 @@ __PDE:
 	
 	
 	
-.section .date
+.section .data
 
 .globl	GDT
 
 GDT:
-	.quad	0x0000000000000000	;quard word伪指令，4字节,IA-32e模式的GDT项沿用保护模式的GDT项，但忽略段基址和段长度
-	.quad	0x0020980000000000	;D/B=0
-					;L=1	64位模式，默认位宽32位
-					;P=1	段存在
-					;DPL=00	描述符特权级=0
-					;S=1	代码段or数据段
-					;TYPE=1000	代码段，非一致性（依从代码），不可读，未访问
+	.quad	0x0000000000000000	//quard word伪指令，4字节,IA-32e模式的GDT项沿用保护模式的GDT项，但忽略段基址和段长度
+	.quad	0x0020980000000000	//D/B=0
+					//L=1	64位模式，默认位宽32位
+					//P=1	段存在
+					//DPL=00	描述符特权级=0
+					//S=1	代码段or数据段
+					//TYPE=1000	代码段，非一致性（依从代码），不可读，未访问
 	
-	.quad	0x0000920000000000	;P=1	段存在内存中
-					;DPL=0
-					;S=1	代码段or数据段
-					;TYPE=0010	数据段（数据段忽略D/B和L），非一致性（依从）,可读，未访问
+	.quad	0x0000920000000000	//P=1	段存在内存中
+					//DPL=0
+					//S=1	代码段or数据段
+					//TYPE=0010	数据段（数据段忽略D/B和L），非一致性（依从）,可读，未访问
 	
-	.quad	0x0020f80000000000	;代码段，64位模式，DPL=3，非一致性（依从），不可读，未访问
-	.quad	0x0000f20000000000	;数据段,DPL=3
-	.quad	0x00cf9a000000ffff	;代码段，32位,DPL=0,段基址 0x0，段长度 0xfffff,粒度4kb
-	.quad	0x00cf92000000ffff	;数据段，32位,DPL=0,段基址 0x0，段长度 0xfffff,粒度4kb
-	.fill	10,8,0			;2个TSS，128bit,16字节*8
+	.quad	0x0020f80000000000	//代码段，64位模式，DPL=3，非一致性（依从），不可读，未访问
+	.quad	0x0000f20000000000	//数据段,DPL=3
+	.quad	0x00cf9a000000ffff	//代码段，32位,DPL=0,段基址 0x0，段长度 0xfffff,粒度4kb
+	.quad	0x00cf92000000ffff	//数据段，32位,DPL=0,段基址 0x0，段长度 0xfffff,粒度4kb
+	.fill	10,8,0			//2个TSS，128bit,16字节*8
 	
 	
 GDT_Pointer:
-	.word	GDT_Pointer - GDT_Table - 1
-	.quad	GDT_Table
+	.word	GDT_Pointer - GDT - 1
+	.quad	GDT
 	
 
 
 .globl	IDT
 
 IDT:
-	.fill	512,8,0			;重复512次设置8个字节的值为0
+	.fill	512,8,0			//重复512次设置8个字节的值为0
 	
 IDT_Pointer:
-	.word	IDT_Pointer - IDT_Table - 1
-	.quad	IDT_Table
+	.word	IDT_Pointer - IDT - 1
+	.quad	IDT
 	
 	
 	
