@@ -5,7 +5,7 @@
 struct position
 {
     int XResolution;            //屏幕分辨率
-    int YPesolution;
+    int YResolution;
 
     int XPosition;              //光标当前位置
     int YPosition;
