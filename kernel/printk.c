@@ -29,6 +29,20 @@ void putchar(unsigned int * fb, int Xsize, int x, int y, unsigned int FRcolor, u
     }
 }
 
+int vsprintf(char* buf,const char* fmt, va_list args)
+{
+    char* str;
+    for (str = buf; *fmt; fmt++)
+    {
+        if (*fmt != '%')
+        {
+            *str++ = *fmt;
+            continue;
+        }
+
+    }
+}
+
 int color_printk(unsigned FRcolor, unsigned int BKcolor, const char* fmt, ...)
 {
     int i = 0;
