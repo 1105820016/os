@@ -14,6 +14,7 @@ _start:			//程序的入口
 	
 	lidt	IDT_Pointer(%rip)
 	
+	mov	$0x10,	%ax
 	mov	%ax,	%ds
 	mov	%ax,	%es
 	mov	%ax,	%fs
@@ -24,6 +25,7 @@ _start:			//程序的入口
 	movq	$0x101000,	%rax
 	movq	%rax,	%cr3
 	movq	switch_seg(%rip),	%rax
+	pushq	$0x08
 	pushq	%rax
 	lretq
 	

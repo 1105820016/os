@@ -3,6 +3,18 @@
 #include "lib.h"
 #include "linkage.h"
 
+/*
+ *字符数字转数字
+ *s 字符串指针
+ */
+int skip_atoi(const char **s)
+{
+    int i = 0;
+    while (is_digit(**s))
+        i = i * 10 + *((*s)++) - '0';
+    return i;
+}
+
 void putchar(unsigned int * fb, int Xsize, int x, int y, unsigned int FRcolor, unsigned int BKcolor, unsigned char font)
 {
     int i = 0;
@@ -28,6 +40,8 @@ void putchar(unsigned int * fb, int Xsize, int x, int y, unsigned int FRcolor, u
         fontp++;
     }
 }
+
+static char *
 
 /*
  *buf 存储输出的字符串

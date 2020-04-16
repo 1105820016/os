@@ -13,6 +13,8 @@
 #define SPECIAL 32      //0x
 #define SMALL   64      //使用小写
 
+#define is_digit(c) ((c) >= '0' && (c) <= '9')
+
 struct position
 {
     int XResolution;            //屏幕分辨率
