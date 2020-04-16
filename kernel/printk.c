@@ -29,9 +29,19 @@ void putchar(unsigned int * fb, int Xsize, int x, int y, unsigned int FRcolor, u
     }
 }
 
+/*
+ *buf 存储输出的字符串
+ *fmt 格式化输入字符串，%[flags][width][.precision][length][specifier]
+ *args 一个表示可变参数列表的对象
+ */
 int vsprintf(char* buf,const char* fmt, va_list args)
 {
     char* str;
+    int flags;
+    int field_width;
+    int precision;
+    int qualifier;
+
     for (str = buf; *fmt; fmt++)
     {
         if (*fmt != '%')
@@ -39,8 +49,171 @@ int vsprintf(char* buf,const char* fmt, va_list args)
             *str++ = *fmt;
             continue;
         }
+        while((*fmt) == '-' || (*fmt) == '+' || (*fmt) == ' ' || (*fmt) == '#' || (*fmt) == '0')    //%符号后面可能是+- #0等符号
+        {
+            fmt++;
+            switch(*fmt)
+            {
+            case '-':
+                flags |= LEFT;      //左对齐
+                break;
+            case '+':
+                flags |= PLUS;      //显示加
+                break;
+            case ' ':
+                flags |= SPACE;
+                break;
+            case '#':
+                flags |= SPECIAL;
+                break;
+            case '0':
+                flags |= ZEROPAD;
+                break;
+            }
+        }
 
+        //获取字段宽度
+        field_width = -1;
+        if (is_digit(*fmt))
+            field_width = skip_atoi(&fmt);
+        else if (*fmt == '*')
+        {
+            fmt++;
+            field_width = va_arg(args, int);
+            if(field_width < 0)
+            {
+                field_width = -field_width;
+                flags |= LEFT;
+            }
+        }
+
+        //获取精度
+        precision = -1;
+        if (*fmt == '.')
+        {
+            fmt++;
+            if (is_digit(*fmt))
+                precision = skip_atoi(&fmt);
+            else if (*fmt == '*')       //如果是*数据宽度由可变参数提供
+            {
+                fmt++;
+                precision = va_arg(args, int);
+            }
+            if (precision < 0)
+                precision = 0;
+        }
+
+        //检测数据显示规格，%ld
+        qualifier = -1;
+        if (*fmt == 'h' || *fmt == 'l' || *fmt == 'L' || *fmt == 'Z')
+        {
+            qualifier = *fmt;
+            fmt++;
+        }
+
+        switch(*fmt)
+        {
+        //%c可变参数转换为字符
+        case 'c':
+            if (!(falgs & LEFT))    //右对齐
+                while(--field_width > 0)
+                    *str++ = ' ';
+            *str++ = (unsigned char)va_arg(args, int);
+            while(--field_width > 0)
+                *str++ = ' ';
+            break;
+
+        //%s字符串显示
+        case 's':
+            s = va_arg(args,char *);
+            if(!s)
+                s = '\0';
+            len = strlen(s);
+            if(precision < 0)
+                precision = len;
+            else if(len > precision)
+                len = precision;
+
+            if(!(flags & LEFT))     //右对齐
+                while(len < field_width--)
+                    *str++ = ' ';
+            for(i = 0; i < len ; i++)
+                *str++ = *s++;
+            while(len < field_width--)  //左对齐
+                *str++ = ' ';
+            break;
+
+        //%o 无符号八进制
+        case 'o':
+            if(qualifier == 'l')
+                str = number(str,va_arg(args,unsigned long),8,field_width,precision,flags);
+            else
+                str = number(str,va_arg(args,unsigned int),8,field_width,precision,flags);
+            break;
+
+        //%p
+        case 'p':
+            if(field_width == -1)
+            {
+                field_width = 2 * sizeof(void *);
+                flags |= ZEROPAD;
+            }
+
+            str = number(str,(unsigned long)va_arg(args,void *),16,field_width,precision,flags);
+            break;
+        //%x无符号十六进制
+        case 'x':
+            flags |= SMALL;
+        //%x无符号十六进制
+        case 'X':
+            if(qualifier == 'l')
+                str = number(str,va_arg(args,unsigned long),16,field_width,precision,flags);
+            else
+                str = number(str,va_arg(args,unsigned int),16,field_width,precision,flags);
+            break;
+        //%d或%i 有符号十进制数
+        case 'd':
+        case 'i':
+            flags |= SIGN;
+
+        //无符号十进制数
+        case 'u':
+            if(qualifier == 'l')
+                str = number(str,va_arg(args,unsigned long),10,field_width,precision,flags);
+            else
+                str = number(str,va_arg(args,unsigned int),10,field_width,precision,flags);
+            break;
+
+        //%n无输出,把目前已格式化的字符串长度返回给函数调用者
+        case 'n':
+            if(qualifier == 'l')
+            {
+                long *ip = va_arg(args,long *);
+                *ip = (str - buf);
+            }
+            else
+            {
+                int *ip = va_arg(args,int *);
+                *ip = (str - buf);
+            }
+            break;
+
+        //%%，输出%字符
+        case '%':
+            *str++ = '%';
+            break;
+
+        default:
+            *str++ = '%';
+            if(*fmt)
+                *str++ = *fmt;
+            else
+                fmt--;
+            break;
+        }
     }
+    *str = '\0';
+    return str - buf;
 }
 
 int color_printk(unsigned FRcolor, unsigned int BKcolor, const char* fmt, ...)
