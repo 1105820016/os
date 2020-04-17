@@ -32,4 +32,11 @@ struct position
     unsigned long FB_length;    //帧缓存容量大小
 } Pos;
 
+inline int strlen(char * str)
+{
+    register int __res;
+    __asm__ __volatile__ ("cld; repnz scasb; notl %0; decl %0;" :"=c"(__res): "D"(str), "a"(0), "0"(0xffffffff));
+    return __res;
+}
+
 #endif // __PRINTK_H__
