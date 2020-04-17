@@ -41,7 +41,89 @@ void putchar(unsigned int * fb, int Xsize, int x, int y, unsigned int FRcolor, u
     }
 }
 
-static char *
+
+/*
+ *将数字按格式转换为字符串
+ *num 输入的数
+ *base 进制（8，10，16）
+ *size 输出宽度
+ *precision 精度
+ *type 格式
+ *返回的str没什么用
+ */
+static char * number(char * str, long num, int base, int size, int precision, int type)
+{
+    int i;
+    char c, sign, tmp[50];
+    const char* digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    if (type & SMALL)
+        digits = "0123456789abcdefghijklmnopqrstuvwxyz";
+    if (type & LEFT)        //左对齐,不能用0填充
+        type = type & ~ZEROPAD;
+
+    if (base < 2 || base > 36)
+        return 0;
+
+    c = (type & ZEROPAD) ? '0' : ' ';   //确定填充符号
+    sign = 0;
+    if (type&SIGN && num < 0)           //有符号数且小于0
+    {
+        sign = '-';
+        num = -num;
+    }
+    else
+        sign = (type & PLUS) ? '+' : ((type & SPACE) ? ' ' : 0);
+
+    if (sign)                           //符号占用输出
+        size--;
+
+    if (type & SPECIAL)                 //16进制以0x开头，8进制以0开头
+    {
+        if (base == 16)
+            size -= 2;
+        else if (base == 8)
+            size--;
+    }
+    i = 0;
+    if (num == 0)
+        tmp[i++] = '0';
+    else
+        while(num != 0)
+            tmp[i++] = digits[do_div(num, base)];
+
+    if (i > precision) precision = i;
+    size -= precision;
+
+    if (!(type & (ZEROPAD + LEFT)))     // !(0填充左对齐)->右对齐，左边用空格填充
+        while(size-- > 0)
+            *str++ = ' ';
+
+    if (sign)
+        *str++ = sign;
+
+    if (type & SPECIAL)
+        if (base == 8)
+            *str++ = '0';
+        else if (base == 16)
+        {
+            *str++ = '0';
+            *str++ = digits[33];
+        }
+
+    if (!(type & LEFT))             //右对齐
+        while(size-- > 0)
+            *str++ = c;
+    while (i < precision--)         //i<精度,前面补0
+        *str++ = '0';
+
+    while (i-- > 0)
+        *str++ = tmp[i];
+
+    while(size-- > 0)
+        *str++ = ' ';
+
+    return str;
+}
 
 /*
  *buf 存储输出的字符串

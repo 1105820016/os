@@ -6,7 +6,7 @@
 #include "linkage.h"
 
 #define ZEROPAD 1       //零填充
-#define SIGN    2       //无符号or有符号长
+#define SIGN    2       //有符号
 #define PLUS    4       //显示+
 #define SPACE   8       //空格
 #define LEFT    16      //左对齐
@@ -14,6 +14,8 @@
 #define SMALL   64      //使用小写
 
 #define is_digit(c) ((c) >= '0' && (c) <= '9')
+
+#define do_div(n,base) ({int __res; __asm__ __volatile__("divq %%ecx":"=a"(n),"=d"(__res): "0"(n), "1"(0), "c"base); __res;})
 
 struct position
 {
