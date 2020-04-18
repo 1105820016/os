@@ -1,7 +1,7 @@
 #include <stdarg.h>     //GUN C编译环境自带头文件，支持可变参数
 #include "printk.h"
-#include "lib.h"
-#include "linkage.h"
+//#include "lib.h"
+//#include "linkage.h"
 
 /*
  *字符数字转数字
@@ -19,8 +19,8 @@ void putchar(unsigned int * fb, int Xsize, int x, int y, unsigned int FRcolor, u
 {
     int i = 0;
     int j = 0;
-    unsigned int * addr = NULL;
-    unsigned char * fontp = NULL;
+    unsigned int * addr = 0;
+    unsigned char * fontp = 0;
     int testval = 0;
     fontp = font_ascii[font];
 
@@ -89,7 +89,7 @@ static char * number(char * str, long num, int base, int size, int precision, in
         tmp[i++] = '0';
     else
         while(num != 0)
-            tmp[i++] = digits[do_div(num, base)];
+            tmp[i++] = digits[do_div(num,base)];
 
     if (i > precision) precision = i;
     size -= precision;
@@ -137,6 +137,8 @@ int vsprintf(char* buf,const char* fmt, va_list args)
     int field_width;
     int precision;
     int qualifier;
+    char* s;
+    int len, i;
 
     for (str = buf; *fmt; fmt++)
     {
@@ -211,7 +213,7 @@ int vsprintf(char* buf,const char* fmt, va_list args)
         {
         //%c可变参数转换为字符
         case 'c':
-            if (!(falgs & LEFT))    //右对齐
+            if (!(flags & LEFT))    //右对齐
                 while(--field_width > 0)
                     *str++ = ' ';
             *str++ = (unsigned char)va_arg(args, int);
@@ -332,12 +334,12 @@ int color_printk(unsigned FRcolor, unsigned int BKcolor, const char* fmt, ...)
             line--;
             putchar(Pos.FB_addr, Pos.XResolution, Pos.XPosition * Pos.XCharSize, Pos.YPosition * Pos.YCharSize, FRcolor, BKcolor, ' ');
         }
-        else if ((unsigned char*)(buf + count) == '\n')
+        else if ((unsigned char)*(buf + count) == '\n')
         {
             Pos.YPosition++;
             Pos.XPosition = 0;
         }
-        else if ((unsigned char*)(buf + count) == '\b') //退格符
+        else if ((unsigned char)*(buf + count) == '\b') //退格符
         {
             Pos.XPosition--;
             if (Pos.XPosition < 0)
@@ -349,7 +351,7 @@ int color_printk(unsigned FRcolor, unsigned int BKcolor, const char* fmt, ...)
             }
             putchar(Pos.FB_addr, Pos.XResolution, Pos.XPosition * Pos.XCharSize, Pos.YPosition * Pos.YCharSize, FRcolor, BKcolor, ' '); //覆盖之前打印的字符
         }
-        else if ((unsigned char*)(buf + count) == '\t')
+        else if ((unsigned char)*(buf + count) == '\t')
         {
             line = ((Pos.XPosition + 8) & ~(8 - 1)) - Pos.XPosition;
             line--;
@@ -357,13 +359,13 @@ int color_printk(unsigned FRcolor, unsigned int BKcolor, const char* fmt, ...)
         }
         else
         {
-            putchar(Pos.FB_addr, Pos.XResolution, Pos.XPosition * Pos.XCharSize, Pos.YPosition * Pos.YCharSize, FRcolor, BKcolor, (unsigned char*)(buf + count));
+            putchar(Pos.FB_addr, Pos.XResolution, Pos.XPosition * Pos.XCharSize, Pos.YPosition * Pos.YCharSize, FRcolor, BKcolor, (unsigned char)*(buf + count));
             Pos.XPosition++;
         }
 
         if (Pos.XPosition >= (Pos.XResolution / Pos.XCharSize))     //调整当前光标位置
         {
-            Pos.Yposition++;
+            Pos.YPosition++;
             Pos.XPosition = 0;
         }
         if (Pos.YPosition >= (Pos.YResolution / Pos.YCharSize))

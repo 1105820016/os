@@ -3,7 +3,6 @@
 
 #include <stdarg.h>
 #include "font.h"
-#include "linkage.h"
 
 #define ZEROPAD 1       //零填充
 #define SIGN    2       //有符号
@@ -25,7 +24,7 @@
 
 #define is_digit(c) ((c) >= '0' && (c) <= '9')
 
-#define do_div(n,base) ({int __res; __asm__ __volatile__("divq %%ecx":"=a"(n),"=d"(__res): "0"(n), "1"(0), "c"base); __res;})
+#define do_div(n,base) ({int __res; __asm__("divq %%rcx":"=a"(n),"=d"(__res): "0"(n), "1"(0), "c"(base)); __res;})
 
 struct position
 {
@@ -41,6 +40,8 @@ struct position
     unsigned int * FB_addr;     //帧缓存起始地址
     unsigned long FB_length;    //帧缓存容量大小
 } Pos;
+
+char buf[4096] = {0};
 
 int color_printk(unsigned FRcolor, unsigned int BKcolor, const char* fmt, ...);
 
