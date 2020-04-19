@@ -38,7 +38,12 @@ entry64:
 	movq	%rax,	%es
 	movq	%rax,	%gs
 	movq	%rax,	%ss
-	movq	$0xffff800000007E00,	%rsp
+	//movq	$0xffff800000007E00,	%rsp
+	movq	_stack_start(%rip),	%rsp
+	
+setup_IDT:
+	leaq	ignore_int(%rip),	%rdx
+	movq	$(0x08 << 16),	%rax
 
 	movq	go_to_kernel(%rip),	%rax
 	pushq	$0x08
