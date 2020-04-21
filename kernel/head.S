@@ -38,7 +38,6 @@ entry64:
 	movq	%rax,	%es
 	movq	%rax,	%gs
 	movq	%rax,	%ss
-	//movq	$0xffff800000007E00,	%rsp
 	movq	_stack_start(%rip),	%rsp
 	
 setup_IDT:
