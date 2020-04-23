@@ -40,9 +40,45 @@ entry64:
 	movq	%rax,	%ss
 	movq	_stack_start(%rip),	%rsp
 	
-setup_IDT:
-	leaq	ignore_int(%rip),	%rdx
+setup_IDT:		//中断门描述符和陷阱门描述符128位，格式化放入rdx:rax
+	leaq	ignore_int(%rip),	%rdx	//Load effective address,不解引用，直接将ignore_int+rip的值给rdx，而不是ignore_int+rip处的值
 	movq	$(0x08 << 16),	%rax
+	movw	%dx,	%ax
+	movq	$(0x8E00 << 32),	%rcx
+	addq	%rcx,	%rax
+	movl	%edx,	%ecx
+	shrl	$16,	%eax
+	shlq	$48,	%rcx
+	addq	%rcx,	%rax
+	shrq	$32,	%rdx
+	leaq	IDT(%rip),	%rdi
+	mov	$256,	%rcx
+rp_sidt:		//初始化256个idt项
+	movq	%rax,	(%rdi)
+	movq	%rdx,	8(%rdi)
+	addq	$0x10,	%rdi
+	dec	%rcx
+	jne	rp_sidt
+
+setup_TSS64:
+	leaq	TSS64_Table(%rip),	%rdx
+	xorq	%rax,	%rax
+	xorq	%rcx,	%rcx
+	movq	$0x89,	%rax
+	shlq	$40,	%rax
+	movl	%edx,	%ecx
+	shrl	$24,	%ecx
+	shlq	$56,	%rcx
+	addq	%rcx,	%rax
+	xorq	%rcx,	%rcx
+	movl	%edx,	%ecx
+	addl	$0xffffff,	%ecx
+	shlq	$16,	%rcx
+	addq	%rcx,	%rax
+	addq	$103,	%rax
+	leaq	GDT(%rip),	%rdi
+	
+	
 
 	movq	go_to_kernel(%rip),	%rax
 	pushq	$0x08
