@@ -60,7 +60,7 @@ rp_sidt:		//初始化256个idt项
 	dec	%rcx
 	jne	rp_sidt
 
-setup_TSS64:
+setup_TSS64:			//初始化GDT内的TSS描述符,TSS描述符128位
 	leaq	TSS64_Table(%rip),	%rdx
 	xorq	%rax,	%rax
 	xorq	%rcx,	%rcx
@@ -77,8 +77,12 @@ setup_TSS64:
 	addq	%rcx,	%rax
 	addq	$103,	%rax
 	leaq	GDT(%rip),	%rdi
+	movq	%rax,	64(%rdi)
+	shrq	$32,	%rdx
+	movq	%rdx,	72(%rdi)
 	
-	
+	mov	$0x40,	%ax
+	ltr	%ax		//加载到gdt
 
 	movq	go_to_kernel(%rip),	%rax
 	pushq	$0x08
