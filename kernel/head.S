@@ -94,6 +94,75 @@ go_to_kernel:
 
 
 
+ignore_int:			//显示信息
+	cld
+	pushq   %rax
+        pushq   %rbx
+        pushq   %rcx
+        pushq   %rdx
+        pushq   %rbp
+        pushq   %rdi
+        pushq   %rsi
+
+        pushq   %r8
+        pushq   %r9
+        pushq   %r10
+        pushq   %r11
+        pushq   %r12
+        pushq   %r13
+        pushq   %r14
+        pushq   %r15
+	
+	movq    %es,    %rax
+        pushq   %rax
+        movq    %ds,    %rax
+        pushq   %rax
+	
+	movq    $0x10,  %rax
+        movq    %rax,   %ds
+        movq    %rax,   %es
+	
+	leaq    int_msg(%rip),  %rax
+        pushq   %rax
+        movq    %rax,   %rdx
+        movq    $0x00000000,    %rsi
+        movq    $0x00ff0000,    %rdi
+        movq    $0,     %rax
+        callq   color_printk		//寄存器传参，顺序为rdi,rsi,rdx,rcx,r8,r9
+        addq    $0x8,   %rsp
+	
+Loop:
+        jmp     Loop
+
+        popq    %rax
+        movq    %rax,   %ds
+        popq    %rax
+        movq    %rax,   %es
+
+        popq    %r15
+        popq    %r14
+        popq    %r13
+        popq    %r12
+        popq    %r11
+        popq    %r10
+        popq    %r9
+        popq    %r8
+
+        popq    %rsi
+        popq    %rdi
+        popq    %rbp
+        popq    %rdx
+        popq    %rcx
+        popq    %rbx
+        popq    %rax
+        iretq
+	
+int_msg:
+	.asciz	"Unknown interrupt or fault at RIP\n"
+	
+ENTRY(_stack_start)
+        .quad   init_task_union + 32768
+
 
 .align	8
 .org	0x1000              //内核定位在0x100000处，PML4T定位在0x101000处
