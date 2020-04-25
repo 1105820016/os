@@ -160,7 +160,7 @@ Loop:
 int_msg:
 	.asciz	"Unknown interrupt or fault at RIP\n"
 	
-ENTRY(_stack_start)
+ENTRY (_stack_start)
         .quad   init_task_union + 32768
 
 
