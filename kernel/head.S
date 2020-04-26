@@ -38,8 +38,8 @@ entry64:
 	movq	%rax,	%es
 	movq	%rax,	%gs
 	movq	%rax,	%ss
-	movq	_stack_start(%rip),	%rsp
-	
+	movq	$0xffff800000007E00,	%rsp
+
 setup_IDT:		//中断门描述符和陷阱门描述符128位，格式化放入rdx:rax
 	leaq	ignore_int(%rip),	%rdx	//Load effective address,不解引用，直接将ignore_int+rip的值给rdx，而不是ignore_int+rip处的值
 	movq	$(0x08 << 16),	%rax
@@ -80,7 +80,7 @@ setup_TSS64:			//初始化GDT内的TSS描述符,TSS描述符128位
 	movq	%rax,	64(%rdi)
 	shrq	$32,	%rdx
 	movq	%rdx,	72(%rdi)
-	
+
 	mov	$0x40,	%ax
 	ltr	%ax		//加载到gdt
 
@@ -112,16 +112,16 @@ ignore_int:			//显示信息
         pushq   %r13
         pushq   %r14
         pushq   %r15
-	
+
 	movq    %es,    %rax
         pushq   %rax
         movq    %ds,    %rax
         pushq   %rax
-	
+
 	movq    $0x10,  %rax
         movq    %rax,   %ds
         movq    %rax,   %es
-	
+
 	leaq    int_msg(%rip),  %rax
         pushq   %rax
         movq    %rax,   %rdx
@@ -130,7 +130,7 @@ ignore_int:			//显示信息
         movq    $0,     %rax
         callq   color_printk		//寄存器传参，顺序为rdi,rsi,rdx,rcx,r8,r9
         addq    $0x8,   %rsp
-	
+
 Loop:
         jmp     Loop
 
@@ -156,12 +156,13 @@ Loop:
         popq    %rbx
         popq    %rax
         iretq
-	
+
 int_msg:
 	.asciz	"Unknown interrupt or fault at RIP\n"
-	
-ENTRY (_stack_start)
-        .quad   init_task_union + 32768
+
+//.global _stack_start;
+//_stack_start:
+//        .quad   init_task_union + 32768
 
 
 .align	8
