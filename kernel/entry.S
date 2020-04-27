@@ -24,6 +24,8 @@ RFLAGS  =   0xa8
 OLDRSP  =   0xb0
 OLDSS   =   0xb8
 
+
+
 //还原程序执行现场
 RESTORE_ALL:
     popq    %r15
@@ -49,13 +51,22 @@ RESTORE_ALL:
     addq    $0x10,  %rsp   //将栈指针上移16B，弹出FUNC和ERRCODE
     iretq
 
+
+
+ret_from_exception:
+.global ret_from_intr
+ret_from_intr:
+    jmp RESTORE_ALL
+
+
+
+//#DE除法处理模块
 .global divide_error
 divide_error:
-    pushq   $0
+    pushq   $0              //#DE错误不会产生错误码，压入0是为了保证所有异常处理程序压栈顺序一致
     pushq   %rax
-    leaq    do_divide_error(%rip),  %rax
-    xchgq   %rax,   (%rsp)
-
+    leaq    do_divide_error(%rip),  %rax    //将处理程序的地址存入rax
+    xchgq   %rax,   (%rsp)  //rax与栈中的值交换，将处理程序地址压入栈，并恢复rax
 
 //程序现场保存
 error_code:
@@ -94,4 +105,72 @@ error_code:
     callq   *%rdx
 
     jmp ret_from_exception
+
+
+
+
+//TS异常
+.global invalid_TSS
+invalid_TSS:
+    pushq   %rax
+    leaq    do_invalid_TSS(%rip),   %rax
+    xchgq   %rax,   (%rsp)
+    jmp error_code
+
+
+
+
+//PF异常
+.global page_fault
+page_fault:
+    push    %rax
+    leaq    do_page_fault(%rip),    %rax
+    xchgq   %rax,   (%rsp)
+    jmp error_code
+
+
+
+
+//#NMI不可屏蔽中断，不是异常不会产生错误码是外部中断
+.global nmi
+nmi:
+    pushq   %rax
+    cld
+    pushq   %rax
+
+    pushq   %rax
+    movq    %es,    %rax
+    pushq   %rax
+    movq    %ds,    %rax
+    pushq   %rax
+    xorq    %rax,   %rax
+
+    pushq   %rbp
+    pushq   %rdi
+    pushq   %rsi
+    pushq   %rdx
+    pushq   %rcx
+    pushq   %rbx
+    pushq   %r8
+    pushq   %r9
+    pushq   %r10
+    pushq   %r11
+    pushq   %r12
+    pushq   %r13
+    pushq   %r14
+    pushq   %r15
+
+    movq    $16,    %rdx
+    movq    %rdx,   %ds
+    movq    %rdx,   %es
+
+    movq    $0, %rsi
+    movq    %rsp,   %rdi
+    callq   do_nmi
+
+    jmp RESTORE_ALL
+
+
+
+
 
