@@ -81,8 +81,8 @@ setup_TSS64:			//初始化GDT内的TSS描述符,TSS描述符128位
 	shrq	$32,	%rdx
 	movq	%rdx,	72(%rdi)
 
-	mov	$0x40,	%ax
-	ltr	%ax		//加载到gdt
+	//mov	$0x40,	%ax
+	//ltr	%ax		//加载到gdt
 
 	movq	go_to_kernel(%rip),	%rax
 	pushq	$0x08
