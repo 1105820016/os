@@ -47,6 +47,39 @@ void do_invalid_TSS(unsigned long rsp, unsigned long error_code)
     color_printk(RED, BLACK, "Refers to a descriptor in the current GDT.\n");
 }
 
+//#PF异常
+void do_page_fault(unsigned long rsp, unsigned long error_code)
+{
+    unsigned long *p = NULL;
+    unsigned long cr2 = 0;
+
+    __asm__ __volatile__("movq %%cr2, %0": "=r"(cr2)::"memory");
+
+    p = (unsigned long *)(rsp + 0x98);
+    color_printk(RED, BLACK, "do_page_fault(14),ERROR_CODE:%#0181x, RSP:%#0181x, RIP:%#0181x\n", error_code, rsp, *p);
+
+    if (!(error_code & 1))      //P置位，页保护引发错误
+        color_printk(RED, BLACK, "Page Not-Present\n");
+
+    if (error_code & 2)         //W/R置位，写入页异常
+        color_printk(RED, BLACK, "Write Cause Fault\n");
+    else                        //W/R复位，读取页异常
+        color_printk(RED, BLACK, "Read Cause Fault\n");
+
+    if (error_code & 4)         //U/S置位，使用普通用户权限访问页错误
+        color_printk(RED, BLACK, "Fault in User(3)\n");
+    else                        //U/S复位，使用超级用户权限访问页错误
+        color_printk(RED, BLACK, "Fault in supervisor(0,1,2)\n");
+
+    if (error_code & 8)         //PSVD置位，置位页表项的保留位引发异常
+        color_printk(RED, BLACK, "Reserved Bit Cause Fault.\n");
+
+    if (error_code & 16)         //I/D置位，获取指令时引发异常
+        color_printk(RED, BLACK, "Instruction fetch Cause Fault.\n");
+
+    color_printk(RED, BLACK, "CR2:%#0181x\n",cr2);
+}
+
 void sys_vector_init()
 {
 	set_trap_gate(0, 1, divide_error);
