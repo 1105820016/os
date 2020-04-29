@@ -52,7 +52,7 @@ void Start_Kernel(void)
 
     sys_vector_init();
 
-    i = 1/0;
+    //i = 1/0;
 
     while(1);
 }
