@@ -2,6 +2,9 @@
 #include "gate.h"
 #include "trap.h"
 #include "lib.h"
+#include "memory.h"
+
+struct Global_Memory_Descriptor memory_management_struct = {{0}, 0};
 
 void Start_Kernel(void)
 {

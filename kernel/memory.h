@@ -13,13 +13,13 @@
 #define PAGE_2M_SIZE    (1UL << PAGE_2M_SHIFT)      //2MB页的容量，1UL表示无符号长整型1
 #define PAGE_4K_SIZE    (1UL << PAGE_4K_SHIFT)
 
-#define PAGE_2M_MASK    (~ (PAGE_2M_SIZE - 1))
+#define PAGE_2M_MASK    (~ (PAGE_2M_SIZE - 1))      //2MB数值屏蔽码，屏蔽低于2MB的数值
 #define PAGE_4K_MASK    (~ (PAGE_4K_SIZE - 1))
 
-#define PAGE_2M_ALIGN(addr) (((unsigned long)(addr) + PAGE_2M_SIZE - 1) & PAGE_2M_MASK)
+#define PAGE_2M_ALIGN(addr) (((unsigned long)(addr) + PAGE_2M_SIZE - 1) & PAGE_2M_MASK) //将地址按2MB页的上边界对其
 #define PAGE_4K_ALIGN(addr) (((unsigned long)(addr) + PAGE_4K_SIZE - 1) & PAGE_4K_MASK)
 
-#define Virt_To_Phy(addr)   ((unsigned long)(addr) - PAGE_OFFSET)
+#define Virt_To_Phy(addr)   ((unsigned long)(addr) - PAGE_OFFSET)       //内核虚拟地址转换为物理地址
 #define Phy_To_Virt(addr)   ((unsigned long*)((unsigned long)(addr) + PAGE_OFFSET))
 
 
@@ -31,5 +31,20 @@ struct Memory_E820_Formate      //存储内存信息，内存信息暂存在0x7e
     unsigned int length2;
     unsigned int type;
 };
+
+struct E820
+{
+    unsigned long address;
+    unsigned long length;
+    unsigned int type;
+}__attribute__((packed));       //__attribute__按实际字节数对齐紧凑模式，不优化对齐
+
+struct Global_Memory_Descriptor
+{
+    struct E820 e820[32];
+    unsigned long e820_length;
+};
+
+extern struct Global_Memory_Descriptor memory_management_struct;
 
 #endif // __MEMORY_H__
