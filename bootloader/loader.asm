@@ -321,7 +321,7 @@
 		;get SVGA mode information
 		mov	ax,	ds
 		mov	es,	ax
-		mov	bp,	GetSVGAModeInformationMessage
+		mov	bp,	GetSVGAModeInformationMessage		//c000：8029->0xc8029(0xc01e2,0xc9771)
 		mov	ax,	1301h
 		mov	bx,	000fh
 		mov	dx,	0c00h
@@ -371,17 +371,25 @@
 		int	10h
 		
 	SetSVGAModeFail:
+		mov	ax,	ds
+		mov	es,	ax
+		mov	bp,	SetSVGAModeFailMessage
+		mov	ax,	1301h
+		mov	bx,	000fh
+		mov	dx,	0d00h
+		mov	cx,	18
+		int	10h
 		jmp	$
 		
 	SVGAModeInfoFinish:
 		mov	ax,	ds
 		mov	es,	ax
-		mov	bp,	GetSVGAModeInfoOKMessage
+		mov	bp,	GetSVGAModeInfoOKMessage	
 		mov	ax,	1301h
 		mov	bx,	000fh
 		mov	dx,	0e00h
 		mov	cx,	28
-		int	10h
+		int	10h					//0xc986d
 		
 	;set SVGA mode
 		mov	ax,	4f02h
@@ -625,3 +633,4 @@ DispAL:
 	GetSVGAModeInformationMessage	db	"Start Get SVGA Mode Information"	;31
 	GetSVGAModeInfoErrorMessage	db	"Get SVGA Mode Information Error"
 	GetSVGAModeInfoOKMessage	db	"Get SVGA Mode Information OK"	;28
+	SetSVGAModeFailMessage		db	"Set SVGA Mode Fail"		;18
