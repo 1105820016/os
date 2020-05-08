@@ -270,11 +270,11 @@
 	GetMemOK:
 		mov	ax,	ds
 		mov	es,	ax
-		mov	bp,	GetMemStructOKMessage
+		mov	bp,	GetMemStructOKMessage		//0x6f5a
 		mov	ax,	1301h
 		mov	bx,	000fh
 		mov	dx,	0600h
-		mov	cx,	23
+		mov	cx,	20
 		int	10h
 		
 		;get SGVA information
