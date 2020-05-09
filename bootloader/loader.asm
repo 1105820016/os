@@ -270,7 +270,7 @@
 	GetMemOK:
 		mov	ax,	ds
 		mov	es,	ax
-		mov	bp,	GetMemStructOKMessage		//0x6f5a
+		mov	bp,	GetMemStructOKMessage		;0x6f5a
 		mov	ax,	1301h
 		mov	bx,	000fh
 		mov	dx,	0600h
@@ -321,7 +321,7 @@
 		;get SVGA mode information
 		mov	ax,	ds
 		mov	es,	ax
-		mov	bp,	GetSVGAModeInformationMessage		//c000：8029->0xc8029(0xc01e2,0xc9771)
+		mov	bp,	GetSVGAModeInformationMessage		;c000：8029->0xc8029(0xc01e2,0xc9771)
 		mov	ax,	1301h
 		mov	bx,	000fh
 		mov	dx,	0c00h
@@ -389,7 +389,7 @@
 		mov	bx,	000fh
 		mov	dx,	0e00h
 		mov	cx,	28
-		int	10h					//0xc986d
+		int	10h					;0xc986d
 		
 	;set SVGA mode
 		mov	ax,	4f02h
@@ -487,7 +487,7 @@
 		jb	SupportLongModeDone
 		mov	eax,	0x80000001
 		cpuid
-		bt	eax,	29		;检测是否支持IA-32e模式
+		bt	edx,	29		;检测是否支持IA-32e模式
 		setc	al
 	SupportLongModeDone:
 		movzx	eax,	al		;无符号扩展传送，0扩展然后传送
@@ -495,7 +495,7 @@
 	
 	NoSupport:
 		jmp	$
-	
+		jmp	$
 		
 
 [SECTION .s16]
