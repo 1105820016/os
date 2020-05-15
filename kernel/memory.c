@@ -1,16 +1,31 @@
 #include "memory.h"
 #include "lib.h"
 
+unsigned long page_init(struct Page * page, unsigned long flags)
+{
+	
+}
+
+unsigned long page_clean(struct Page* page)
+{
+	
+}
+
+struct Page * alloc_pages(int zone_select, int number, unsigned long page_flags)
+{
+	
+}
+
 void init_memory()
 {
     int i, j;
     unsigned long TotalMem = 0;
-    struct Memory_E820_Formate *p = NULL;
+    struct E820 *p = NULL;
 
     color_printk(BLUE, BLACK, "Dispaly Physics Address MAP, Type(1:RAM, 2:ROM or Reserved, 3:ACPI Reclaim Memory \
                  4:ACPI NVSS Memory, Others:Undefine)\n");
 
-    p = (struct Memory_E820_Formate *)0xffff800000007e00;
+    p = (struct E820 *)0xffff800000007e00;
 
     for (i = 0; i < 32; i++)        //显示物理内存分布信息
     {

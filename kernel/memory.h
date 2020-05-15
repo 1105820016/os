@@ -22,9 +22,37 @@
 #define Virt_To_Phy(addr)   ((unsigned long)(addr) - PAGE_OFFSET)       //内核虚拟地址转换为物理地址
 #define Phy_To_Virt(addr)   ((unsigned long*)((unsigned long)(addr) + PAGE_OFFSET))
 
+struct Page
+{
+	struct Zone * zone_struct;
+	unsigned long PHY_address;
+	unsigned long attribute;
+	
+	unsigned long reference_count;
+	unsigned long age;
+};
+
+struct Zone
+{
+	struct Page * pages_group;
+	unsigned long pages_length;
+	
+	unsigned long zone_start_address;
+	unsigned long zone_end_address;
+	unsigned long zone_length;
+	
+	unsigned long attribute;
+	
+	struct Global_Memory_Descriptor * GMD_struct;
+	
+	unsigned long page_using_count;
+	unsigned long page_free_count;
+	
+	unsigned long total_page_link;
+};
 
 struct Memory_E820_Formate      //存储内存信息，内存信息暂存在0x7e00,线性地址是0xffff800000007e00h
-{
+{				//内存信息通过int 15h，ax=e820h获得，每条信息20B
     unsigned int address1;
     unsigned int address2;
     unsigned int length1;
@@ -43,6 +71,22 @@ struct Global_Memory_Descriptor
 {
     struct E820 e820[32];
     unsigned long e820_length;
+    
+    unsigned long * bits_map;
+    unsigned long bits_size;
+    unsigned long bits_length;
+    
+    struct Page * pages_struct;
+    unsigned long page_size;
+    unsigned long pages_length;
+    
+    struct Zone * zones_struct;
+    unsigned long zones_size;
+    unsigned long zones_length;
+    
+    unsigned long start_code, end_code, end_data, end_brk;
+    
+    unsigned long end_of_struct;
 };
 
 extern struct Global_Memory_Descriptor memory_management_struct;
