@@ -27,7 +27,7 @@ void Start_Kernel(void)
     Pos.YCharSize = 16;
 
     Pos.FB_addr = (int*)0xffff800000a00000;
-    Pos.FB_length = (Pos.XResolution * Pos.YResolution * 4);
+    Pos.FB_length = (Pos.XResolution * Pos.YResolution * 4 + PAGE_4K_SIZE - 1) & PAGE_4K_MASK;
     
     load_TR(8);
     
