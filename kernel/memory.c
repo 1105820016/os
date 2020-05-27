@@ -3,7 +3,26 @@
 
 unsigned long page_init(struct Page * page, unsigned long flags)
 {
-	
+	if (!page->attribute)
+	{
+		*(memory_management_struct.bits_map + ((page->PHY_address >> PAGE_2M_SHIFT) >> 6)) |= 1UL << (page->PHY_address >> PAGE_2M_SHIFT) % 64;
+		page->attribute = flags;
+		page->zone_struct->page_using_count++;
+		page->zone_struct->page_free_count--;
+		page->zone_struct->total_pages_link++;
+	}
+	else if ((page->attribute & PG_Referenced) || (page->attribute & PG_K_Share_To_U) || (flags & PG_Referenced) || (flags & PG_K_Share_To_U)) 
+	{
+		page->attribute |= flags;
+		page->reference_count++;
+		page->zone_struct->total_pages_link++;
+	}
+	else
+	{
+		*(memory_management_struct.bits_map + ((page->PHY_address >> PAGE_2M_SHIFT) >> 6)) |= 1UL << (page->PHY_address >> PAGE_2M_SHIFT) % 64;
+		page->attribute |= flags;
+	}
+	return 0;
 }
 
 unsigned long page_clean(struct Page* page)

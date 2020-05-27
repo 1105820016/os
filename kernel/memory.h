@@ -22,6 +22,22 @@
 #define Virt_To_Phy(addr)   ((unsigned long)(addr) - PAGE_OFFSET)       //内核虚拟地址转换为物理地址
 #define Phy_To_Virt(addr)   ((unsigned long*)((unsigned long)(addr) + PAGE_OFFSET))
 
+
+//刷新TLB
+#define flush_tlb()	\
+do			\
+{			\
+	unsigned long tmpreg;	\
+	__asm__ __volatile__	("movq %%cr3, %0; movq %0, %%cr3;": "=r"(tmpreg)::"memory");	\
+}
+
+inline unsigned long * Get_gdt()
+{
+	unsigned long * tmp;
+	__asm__ __volatile____ ("movq %%cr3, %0":"=r"(tmp)::"memory");
+	return tmp;
+}
+
 struct Page
 {
 	struct Zone * zone_struct;
